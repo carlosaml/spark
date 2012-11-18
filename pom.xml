@@ -138,6 +138,9 @@
                     <rulesets>
                         <ruleset>pmdrules.xml</ruleset>
                     </rulesets>
+                    <excludes>
+                        <exclude>**/MatcherFilter.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
 

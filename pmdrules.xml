@@ -21,7 +21,7 @@
 
     <rule ref="rulesets/codesize.xml/ExcessiveParameterList">
         <properties>
-            <property name="minimum" description="The parameter count reporting threshold" value="5"/>
+            <property name="minimum" description="The parameter count reporting threshold" value="6"/>
         </properties>
     </rule>
 
