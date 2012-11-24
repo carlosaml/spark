@@ -16,8 +16,6 @@
  */
 package spark.route;
 
-import spark.utils.SparkUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,109 +30,6 @@ public class SimpleRouteMatcher implements RouteMatcher {
     
     private List<RouteEntry> routes;
 
-    private static class RouteEntry {
-
-        private HttpMethod httpMethod;
-        private String path;
-        private Object target;
-
-        private boolean matches(HttpMethod httpMethod, String path) {
-            if ( (httpMethod == HttpMethod.before || httpMethod == HttpMethod.after)
-                            && (this.httpMethod == httpMethod)
-                            && this.path.equals(SparkUtils.ALL_PATHS)) {
-                // Is filter and matches all
-                return true;
-            }
-            boolean match = false;
-            if (this.httpMethod == httpMethod) {
-                match = matchPath(path);
-            }
-            return match;
-        }
-
-        private boolean matchPath(String path) {
-            if (!this.path.endsWith("*") && ((path.endsWith("/") && !this.path.endsWith("/")) 
-                            || (this.path.endsWith("/") && !path.endsWith("/")))) {
-                // One and not both ends with slash
-                return false;
-            }
-            if (this.path.equals(path)) {
-                // Paths are the same
-                return true;
-            }
-
-            // check params
-            List<String> thisPathList = SparkUtils.convertRouteToList(this.path);
-            List<String> pathList = SparkUtils.convertRouteToList(path);
-
-
-            int thisPathSize = thisPathList.size();
-            int pathSize = pathList.size();
-            
-            if (thisPathSize == pathSize) {
-                return matchesSpecificPaths(thisPathList, pathList, thisPathSize);
-            } else {
-                return matchesWildCards(path, thisPathList, pathList, thisPathSize, pathSize);
-
-            }
-        }
-
-        private boolean matchesWildCards(String path, List<String> thisPathList, List<String> pathList, int thisPathSize, int pathSize) {
-            // Number of "path parts" not the same
-            // check wild card:
-            if (this.path.endsWith("*")) {
-                if (pathSize == (thisPathSize - 1) && (path.endsWith("/"))) {
-                    // Hack for making wildcards work with trailing slash
-                    pathList.add("");
-                    pathList.add("");
-                    pathSize += 2;
-                }
-
-                if (thisPathSize < pathSize) {
-                    for (int i = 0; i < thisPathSize; i++) {
-                        String thisPathPart = thisPathList.get(i);
-                        String pathPart = pathList.get(i);
-                        if (thisPathPart.equals("*") && (i == thisPathSize -1) && this.path.endsWith("*")) {
-                            // wildcard match
-                            return true;
-                        }
-                        if (!thisPathPart.startsWith(":") && !thisPathPart.equals(pathPart)) {
-                            return false;
-                        }
-                    }
-                    // All parts matched
-                    return true;
-                }
-                // End check wild card
-            }
-            return false;
-        }
-
-        private boolean matchesSpecificPaths(List<String> thisPathList, List<String> pathList, int thisPathSize) {
-            for (int i = 0; i < thisPathSize; i++) {
-                String thisPathPart = thisPathList.get(i);
-                String pathPart = pathList.get(i);
-
-                if ((i == thisPathSize -1)) {
-                    if (thisPathPart.equals("*") && this.path.endsWith("*")) {
-                        // wildcard match
-                        return true;
-                    }
-                }
-
-                if (!thisPathPart.startsWith(":") && !thisPathPart.equals(pathPart)) {
-                    return false;
-                }
-            }
-            // All parts matched
-            return true;
-        }
-
-        public String toString() {
-            return httpMethod.name() + ", " + path + ", " + target;
-        }
-    }
-    
     public SimpleRouteMatcher() {
         routes = new ArrayList<RouteEntry>();
     }
@@ -143,7 +38,7 @@ public class SimpleRouteMatcher implements RouteMatcher {
     public RouteMatch findTargetForRequestedRoute(HttpMethod httpMethod, String path) {
         for (RouteEntry entry : routes) {
             if (entry.matches(httpMethod, path)) {
-                return new RouteMatch(httpMethod, entry.target, entry.path, path);
+                return new RouteMatch(httpMethod, entry.getTarget(), entry.getPath(), path);
             }
         }
         return null;
@@ -154,7 +49,7 @@ public class SimpleRouteMatcher implements RouteMatcher {
         List<RouteMatch> matchSet = new ArrayList<RouteMatch>();
         for (RouteEntry entry : routes) {
             if (entry.matches(httpMethod, path)) {
-                matchSet.add(new RouteMatch(httpMethod, entry.target, entry.path, path));
+                matchSet.add(new RouteMatch(httpMethod, entry.getTarget(), entry.getPath(), path));
             }
         }
         return matchSet;
@@ -187,10 +82,7 @@ public class SimpleRouteMatcher implements RouteMatcher {
     }
 
     private void addRoute(HttpMethod method, String url, Object target) {
-        RouteEntry entry = new RouteEntry();
-        entry.httpMethod = method;
-        entry.path = url;
-        entry.target = target;
+        RouteEntry entry = new RouteEntry(method, url, target);
         LOG.debug("Adds route: " + entry);
         // Adds to end of list
         routes.add(entry);
